@@ -87,12 +87,16 @@ sudo chown -R www-data:www-data /var/www/$domain_name
 sudo find /var/www/$domain_name/ -type d -exec chmod 755 {} \;
 sudo find /var/www/$domain_name/ -type f -exec chmod 644 {} \;
 
-echo "修改php.ini 的上传限制..."
-sudo sed -i "s/upload_max_filesize = .*/upload_max_filesize = 200M/" /etc/php/7.4/fpm/php.ini
-sudo sed -i "s/post_max_size = .*/post_max_size = 200M/" /etc/php/7.4/fpm/php.ini
-sudo systemctl restart php7.4-fpm
 
-echo "开启服务器80 
+
+echo "修改php.ini 的上传限制..."
+php_version=$(php -v | grep -oP '\d+\.\d+' | head -1)
+sudo sed -i "s/upload_max_filesize = .*/upload_max_filesize = 32M/" /etc/php/$php_version/fpm/php.ini
+sudo sed -i "s/post_max_size = .*/post_max_size = 32M/" /etc/php/$php_version/fpm/php.ini
+sudo systemctl restart php${php_version}-fpm
+
+
+echo "开启服务器80" 
 
 echo "开启服务器80 443 端口..."
 sudo ufw enable
