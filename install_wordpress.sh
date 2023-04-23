@@ -71,10 +71,10 @@ tar -zxvf latest.tar.gz
 sudo mv wordpress /var/www/$domain_name/
 
 echo "编辑wp-config-sample.php 文件..."
-if [ -f "/var/www/$domain_name/wp-config.php" ]
-  then echo "File wp-config.php already exists"
-  exit
-fi
+# if [ -f "/var/www/$domain_name/wp-config.php" ]
+#   then echo "File wp-config.php already exists"
+#   exit
+# fi
 cd /var/www/$domain_name/
 cp wp-config-sample.php wp-config.php
 sudo sed -i "s/database_name_here/$db_name/g" wp-config.php
