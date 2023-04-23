@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "正在更新 Ubuntu 系统..."
+sudo apt-get update
+sudo apt-get upgrade
+echo "Ubuntu 系统更新完成。"
+
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
   exit
