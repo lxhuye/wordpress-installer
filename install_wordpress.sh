@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
 echo "请输入您的域名："
 read domain_name
 echo "请输入您的数据库名："
@@ -11,24 +16,23 @@ read db_password
 
 echo "开始安装必要的软件包..."
 sudo apt update
-sudo apt install nginx php-fpm php-mysql
-
-echo "安装MySQL数据库..."
-sudo apt install mysql-server
-sudo mysql -u root -p <<MYSQL_SCRIPT
-CREATE DATABASE $db_name;
-CREATE USER '$db_user'@'localhost' IDENTIFIED BY '$db_password';
-GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';
-FLUSH PRIVILEGES;
-MYSQL_SCRIPT
+sudo apt install -y nginx php-fpm php-mysql mysql-server
 
 echo "下载WordPress并将其解压缩..."
 cd /tmp
+if [ $(df /tmp --output=avail | tail -1) -lt 1000000 ]
+  then echo "Insufficient disk space in /tmp"
+  exit
+fi
 wget https://wordpress.org/latest.tar.gz
 tar -zxvf latest.tar.gz
 sudo mv wordpress /var/www/$domain_name/
 
 echo "编辑wp-config-sample.php 文件..."
+if [ -f "/var/www/$domain_name/wp-config.php" ]
+  then echo "File wp-config.php already exists"
+  exit
+fi
 cd /var/www/$domain_name/
 cp wp-config-sample.php wp-config.php
 sudo sed -i "s/database_name_here/$db_name/g" wp-config.php
@@ -42,6 +46,16 @@ sudo systemctl enable nginx
 sudo systemctl status nginx
 
 echo "编辑nginx config 文件..."
+if ! [ -d "/etc/nginx/sites-available" ]
+  then sudo mkdir /etc/nginx/sites-available
+fi
+if ! [ -d "/etc/nginx/sites-enabled" ]
+  then sudo mkdir /etc/nginx/sites-enabled
+fi
+if [ -f "/etc/nginx/sites-available/$domain_name.conf" ]
+  then echo "File /etc/nginx/sites-available/$domain_name.conf already exists"
+  exit
+fi
 sudo bash -c "cat > /etc/nginx/sites-available/$domain_name.conf <<EOL
 server {
   listen 80;
@@ -49,11 +63,9 @@ server {
   root /var/www/$domain_name;
   index index.php;
   server_name $domain_name;
-
   location / {
     try_files \$uri \$uri/ /index.php?\$args;
   }
-
   location ~ \.php$ {
     include fastcgi_params;
     fastcgi_pass unix:/var/run/php/php$(php -v | grep -oP '\d+\.\d+' | head -1)-fpm.sock;
@@ -77,11 +89,4 @@ sudo find /var/www/$domain_name/ -type d -exec chmod 755 {} \;
 sudo find /var/www/$domain_name/ -type f -exec chmod 644 {} \;
 
 echo "修改php.ini 的上传限制..."
-sudo sed -i "s/upload_max_filesize = .*/upload_max_filesize = 32M/" /etc/php/*/fpm/php.ini
-sudo sed -i "s/post_max_size = .*/post_max_size = 32M/" /etc/php/*/fpm/php.ini
-sudo systemctl restart php*-fpm
-
-echo "安装SSL插件 Certbot并获取 Let's Encrypt SSL 证书..."
-sudo apt-get update
-sudo apt-get install certbot
-sudo certbot
+sudo sed -i "s/upload_max_filesize = .
