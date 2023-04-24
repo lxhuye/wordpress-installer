@@ -50,7 +50,7 @@ server {
   }
   location ~ \.php$ {
     include fastcgi_params;
-    fastcgi_pass unix:/var/run/php/php$(php -v | grep -oP '\d+\.\d+' | head -1)-fpm.sock;
+    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
     fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     fastcgi_param SCRIPT_NAME \$fastcgi_script_name;
   }
